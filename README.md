@@ -68,3 +68,115 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+<!-- incomplete redux login authentication  -->
+
+import React, { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "../features/auth/authSlice";
+import { useLoginMutation } from "../features/auth/authApiSlice";
+import axiosRequest from "../axios/axios";
+
+const Login = () => {
+const userRef = useRef();
+const errorRef = useRef();
+const [errMsg, setErrMsg] = useState("");
+const navigate = useNavigate();
+
+const [login, { isLoading }] = useLoginMutation();
+const dispatch = useDispatch();
+
+const [user, setUser] = useState("");
+const [pwd, setPwd] = useState("");
+
+useEffect(() => {
+userRef.current.focus();
+}, []);
+
+useEffect(() => {
+setErrMsg("");
+}, [user, pwd]);
+
+// const handleChange = (e) => {
+// setUser((prev) => ({
+// ...prev,
+// [e.target.name]: e.target.value,
+// }));
+// };
+const handleUserInput = (e) => setUser(e.target.value);
+const handlePwdInput = (e) => setPwd(e.target.value);
+
+const handleSubmit = async (e) => {
+e.preventDefault();
+
+    try {
+      const userData = await login({ user, pwd }).unwrap();
+      dispatch(setCredentials({ ...userData, user }));
+      await axiosRequest.post("/auth/login", user, pwd);
+      setUser(" ");
+      setPwd(" ");
+      navigate("/");
+    } catch (error) {
+      if (!error?.originalStatus) {
+        setErrMsg("No Server Response");
+      } else if (error.originalStatus?.status === 400) {
+        setErrMsg("Missing Username or Password");
+      } else if (error.originalStatus?.status === 401) {
+        setErrMsg("Unauthorized");
+      } else {
+        setErrMsg("Login failed");
+      }
+      errorRef.current.focus();
+    }
+
+};
+
+console.log(user);
+console.log(pwd);
+
+const content = isLoading ? (
+<h1>Loading ...</h1>
+) : (
+<div className="auth">
+<h1>Login</h1>
+<form action="">
+<label htmlFor="username">Username</label>
+<input
+          type="text"
+          name="username"
+          id="username"
+          ref={userRef}
+          value={user}
+          required
+          autoComplete="off"
+          placeholder="username"
+          onChange={handleUserInput}
+        />
+<label htmlFor="password">Password</label>
+<input
+          type="password"
+          id="password"
+          value={pwd}
+          required
+          name="password"
+          placeholder="password"
+          onChange={handlePwdInput}
+        />
+<button type="submit" onClick={handleSubmit}>
+Login
+</button>
+{/_ {err && <p>{err}</p>} _/}
+<p ref={errorRef} className={errMsg ? "errmsg" : "offscreen"}>
+{errMsg}
+</p>
+<span>
+Don't have an account? <Link to="/register">sign up</Link>{" "}
+</span>
+</form>
+</div>
+);
+return content;
+};
+
+export default Login;
